@@ -18,3 +18,7 @@ export function criarEnderecoApi(clienteId: number, dados: NovoEnderecoApi) {
     body: JSON.stringify(dados),
   })
 }
+
+export function listarEnderecosApi(clienteId: number) {
+  return apiRequest<EnderecoApi[]>(`/clientes/${clienteId}/enderecos`)
+}
