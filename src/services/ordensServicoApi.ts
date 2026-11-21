@@ -34,3 +34,7 @@ export function criarOrdemServicoApi(dados: OrdemServicoInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function listarOrdensServicoApi() {
+  return apiRequest<OrdemServicoApi[]>('/ordens-servico')
+}
