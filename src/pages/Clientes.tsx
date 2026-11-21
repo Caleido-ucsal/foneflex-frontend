@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Button, Card } from '../components/ui'
 import { listarOrdens } from '../services/ordens'
 import { cadastrarCliente, listarClientes } from '../services/clientes'
+import { listarClientesApi } from '../services/clientesApi'
 import { listarLocacoes } from '../services/locacoes'
 import { dataBR } from '../services/mock'
 import { listarVendas } from '../services/vendas'
@@ -21,6 +22,13 @@ export default function Clientes() {
   const [busca, setBusca] = useState(params.get('q') ?? '')
   const [novoAberto, setNovoAberto] = useState(false)
   const [historico, setHistorico] = useState<Cliente | null>(null)
+  const [erroApi, setErroApi] = useState('')
+
+  useEffect(() => {
+    listarClientesApi().then(setClientes).catch((e: unknown) => {
+      setErroApi(e instanceof Error ? e.message : 'Não foi possível carregar clientes.')
+    })
+  }, [])
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase()
@@ -50,6 +58,7 @@ export default function Clientes() {
       </Card>
 
       <Card className={styles.table}>
+        {erroApi && <p role="alert" className={styles.empty}>{erroApi}</p>}
         <table>
           <thead>
             <tr>
