@@ -27,3 +27,7 @@ export function registrarVendaApi(dados: VendaInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function listarVendasApi() {
+  return apiRequest<VendaApi[]>('/vendas')
+}
