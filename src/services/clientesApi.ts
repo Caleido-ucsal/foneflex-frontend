@@ -39,3 +39,10 @@ export function criarClienteApi(dados: NovoClienteApi) {
     }),
   })
 }
+
+export function atualizarClienteApi(id: number, dados: NovoClienteApi) {
+  return apiRequest<{ mensagem: string }>(`/clientes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
