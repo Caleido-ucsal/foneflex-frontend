@@ -48,3 +48,7 @@ export function atualizarProdutoApi(id: number, dados: ProdutoInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function excluirProdutoApi(id: number) {
+  return apiRequest<{ message: string }>(`/produtos/${id}`, { method: 'DELETE' })
+}
