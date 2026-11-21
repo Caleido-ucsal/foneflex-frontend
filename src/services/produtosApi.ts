@@ -41,3 +41,10 @@ export function criarProdutoApi(dados: ProdutoInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function atualizarProdutoApi(id: number, dados: ProdutoInput) {
+  return apiRequest<{ message: string }>(`/produtos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
