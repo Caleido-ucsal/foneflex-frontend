@@ -6,29 +6,20 @@ export type User = { name: string; role: string; initials: string }
 type AuthValue = { user: User | null; login: (email: string, senha: string) => boolean; logout: () => void }
 
 const AuthContext = createContext<AuthValue | null>(null)
-const KEY = 'foneflex:user'
 
 /* Autenticação simulada (Fase 1 sem back-end): qualquer e-mail e senha preenchidos entram. */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    } catch {
-      return null
-    }
-  })
+  const [user, setUser] = useState<User | null>(null)
 
   const login = (email: string, senha: string) => {
     if (!email.trim() || !senha.trim()) return false
     setApiCredentials(email.trim(), senha)
     const u = { name: 'FONEFLEX', role: 'OPERADOR GENERICO', initials: 'FF' }
-    localStorage.setItem(KEY, JSON.stringify(u))
     setUser(u)
     return true
   }
   const logout = () => {
     clearApiCredentials()
-    localStorage.removeItem(KEY)
     setUser(null)
   }
 

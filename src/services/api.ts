@@ -17,14 +17,15 @@ function basicAuthHeader() {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers)
+  const authorization = basicAuthHeader()
+  headers.set('Accept', 'application/json')
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (authorization) headers.set('Authorization', authorization)
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(basicAuthHeader() ? { Authorization: basicAuthHeader() } : {}),
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers,
-    },
+    headers,
   })
 
   const body = await response.json().catch(() => null) as { message?: string; mensagem?: string } | null
