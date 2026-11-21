@@ -23,3 +23,19 @@ export async function listarClientesApi(): Promise<Cliente[]> {
   const clientes = await apiRequest<ClienteApi[]>('/clientes')
   return clientes.map(mapearCliente)
 }
+
+export type NovoClienteApi = Pick<ClienteApi, 'nome' | 'telefone'> & {
+  cpf?: string
+  email?: string
+}
+
+export function criarClienteApi(dados: NovoClienteApi) {
+  return apiRequest<{ message: string }>('/clientes', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...dados,
+      ...(dados.cpf ? { cpf: dados.cpf.replace(/\D/g, '') } : {}),
+      ...(dados.email ? { email: dados.email } : {}),
+    }),
+  })
+}

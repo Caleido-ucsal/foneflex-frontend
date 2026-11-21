@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Button, Card } from '../components/ui'
 import { listarOrdens } from '../services/ordens'
-import { cadastrarCliente, listarClientes } from '../services/clientes'
-import { listarClientesApi } from '../services/clientesApi'
+import { criarClienteApi, listarClientesApi } from '../services/clientesApi'
+import type { NovoCliente } from '../services/clientes'
 import { listarLocacoes } from '../services/locacoes'
 import { dataBR } from '../services/mock'
 import { listarVendas } from '../services/vendas'
@@ -17,12 +17,23 @@ const iniciais = (nome: string) =>
   nome.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 
 export default function Clientes() {
-  const [clientes, setClientes] = useState(listarClientes)
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [params] = useSearchParams()
   const [busca, setBusca] = useState(params.get('q') ?? '')
   const [novoAberto, setNovoAberto] = useState(false)
   const [historico, setHistorico] = useState<Cliente | null>(null)
   const [erroApi, setErroApi] = useState('')
+
+  const salvarCliente = async (dados: NovoCliente) => {
+    try {
+      await criarClienteApi(dados)
+      setClientes(await listarClientesApi())
+      setNovoAberto(false)
+      setErroApi('')
+    } catch (e) {
+      setErroApi(e instanceof Error ? e.message : 'Não foi possível cadastrar cliente.')
+    }
+  }
 
   useEffect(() => {
     listarClientesApi().then(setClientes).catch((e: unknown) => {
@@ -95,10 +106,7 @@ export default function Clientes() {
       {novoAberto && (
         <NovoClienteModal
           onClose={() => setNovoAberto(false)}
-          onSave={(dados) => {
-            setClientes(cadastrarCliente(dados))
-            setNovoAberto(false)
-          }}
+          onSave={(dados) => void salvarCliente(dados)}
         />
       )}
       {historico && (
