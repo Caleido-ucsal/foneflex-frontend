@@ -26,6 +26,7 @@
 .carrinho footer label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--navy-700); }
 .carrinho footer input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; }
 .ok { color: var(--success); font-size: 11px; }
+.erro { color: #b91c1c; font-size: 13px; }
 .rotulo { font-size: 11px; color: var(--navy-700); }
 .formas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .formas button { background: #fff; border: 1px solid var(--border); padding: 7px 4px; font-size: 11px; border-radius: 3px; }

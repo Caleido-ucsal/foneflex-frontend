@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Button, Card, FilterTabs } from '../components/ui'
-import { listarClientes } from '../services/clientes'
+import { listarClientesApi } from '../services/clientesApi'
 import { brl, dataBR } from '../services/mock'
-import { FORMAS, listarProdutos, registrarVenda } from '../services/vendas'
-import type { FormaPagamento, ItemVenda, Produto, Venda } from '../types'
+import { FORMAS } from '../services/vendas'
+import { listarProdutosApi } from '../services/produtosApi'
+import { concluirVendaApi } from '../services/vendasApi'
+import type { Cliente, FormaPagamento, ItemVenda, Produto, Venda } from '../types'
 import styles from './Vendas.module.css'
 
 const FILTROS = ['Todos', 'Smartphones', 'Acessórios'] as const
@@ -13,13 +15,25 @@ type Filtro = (typeof FILTROS)[number]
 const icone = (p: Produto) => (p.categoria === 'Smartphones' ? '📱' : '🔌')
 
 export default function Vendas() {
-  const [produtos, setProdutos] = useState(listarProdutos)
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [filtro, setFiltro] = useState<Filtro>('Todos')
   const [busca, setBusca] = useState('')
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([])
   const [clienteTxt, setClienteTxt] = useState('')
   const [pagamento, setPagamento] = useState<FormaPagamento>('PIX')
   const [recibo, setRecibo] = useState<Venda | null>(null)
+  const [erroApi, setErroApi] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    Promise.all([listarProdutosApi(), listarClientesApi()])
+      .then(([listaProdutos, listaClientes]) => {
+        setProdutos(listaProdutos)
+        setClientes(listaClientes)
+      })
+      .catch((e: unknown) => setErroApi(e instanceof Error ? e.message : 'Não foi possível carregar os dados da venda.'))
+  }, [])
 
   const visiveis = useMemo(() => {
     const q = busca.trim().toLowerCase()
@@ -30,10 +44,10 @@ export default function Vendas() {
     const q = clienteTxt.trim().toLowerCase()
     if (!q) return undefined
     const digitos = q.replace(/\D/g, '')
-    return listarClientes().find(
+    return clientes.find(
       (c) => c.nome.toLowerCase() === q || (digitos.length >= 11 && c.cpf.replace(/\D/g, '') === digitos),
     )
-  }, [clienteTxt])
+  }, [clientes, clienteTxt])
 
   const total = carrinho.reduce((t, i) => t + i.preco * i.qtd, 0)
   const qtdNoCarrinho = (id: string) => carrinho.find((i) => i.produtoId === id)?.qtd ?? 0
@@ -55,12 +69,35 @@ export default function Vendas() {
     )
   }
 
-  const finalizar = () => {
-    const { venda, produtos: atualizados } = registrarVenda({ itens: carrinho, clienteId: cliente?.id, pagamento })
-    setProdutos(atualizados)
-    setRecibo(venda)
-    setCarrinho([])
-    setClienteTxt('')
+  const finalizar = async () => {
+    if (!cliente) {
+      setErroApi('Selecione um cliente cadastrado para registrar a venda.')
+      return
+    }
+    setEnviando(true)
+    setErroApi('')
+    try {
+      const vendaId = await concluirVendaApi(Number(cliente.id), carrinho.map((item) => ({
+        produtoId: Number(item.produtoId),
+        quantidade: item.qtd,
+      })))
+      const venda: Venda = {
+        id: String(vendaId),
+        data: new Date().toISOString().slice(0, 10),
+        clienteId: cliente.id,
+        itens: carrinho,
+        total,
+        pagamento,
+      }
+      setRecibo(venda)
+      setCarrinho([])
+      setClienteTxt('')
+      setProdutos(await listarProdutosApi())
+    } catch (e) {
+      setErroApi(e instanceof Error ? e.message : 'Não foi possível concluir a venda.')
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -71,6 +108,7 @@ export default function Vendas() {
           <FilterTabs options={FILTROS} value={filtro} onChange={setFiltro} />
           <input placeholder="Buscar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} />
         </Card>
+        {erroApi && <p role="alert" className={styles.erro}>{erroApi}</p>}
 
         <div className={styles.grid}>
           {visiveis.map((p) => {
@@ -132,7 +170,7 @@ export default function Vendas() {
           </div>
 
           <div className={styles.total}><span>Total</span><strong>{brl(total)}</strong></div>
-          <Button block disabled={carrinho.length === 0} onClick={finalizar}>Finalizar Venda e Emitir Recibo</Button>
+          <Button block disabled={carrinho.length === 0 || enviando} onClick={finalizar}>{enviando ? 'Registrando...' : 'Finalizar Venda e Emitir Recibo'}</Button>
         </footer>
       </Card>
     </div>
