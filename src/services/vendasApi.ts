@@ -40,3 +40,10 @@ export function buscarVendasApi(pesquisa: string) {
   const query = new URLSearchParams({ pesquisa })
   return apiRequest<VendaApi[]>(`/vendas/buscar?${query}`)
 }
+
+export function atualizarVendaApi(id: number, dados: VendaInput) {
+  return apiRequest<{ message: string }>(`/vendas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
