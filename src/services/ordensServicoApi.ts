@@ -42,3 +42,10 @@ export function listarOrdensServicoApi() {
 export function obterOrdemServicoApi(id: number) {
   return apiRequest<OrdemServicoApi>(`/ordens-servico/${id}`)
 }
+
+export function atualizarOrdemServicoApi(id: number, dados: OrdemServicoInput) {
+  return apiRequest<{ message: string }>(`/ordens-servico/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
