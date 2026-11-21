@@ -49,3 +49,7 @@ export function atualizarOrdemServicoApi(id: number, dados: OrdemServicoInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function excluirOrdemServicoApi(id: number) {
+  return apiRequest<{ message: string }>(`/ordens-servico/${id}`, { method: 'DELETE' })
+}
