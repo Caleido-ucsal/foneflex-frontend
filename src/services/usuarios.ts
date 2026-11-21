@@ -28,6 +28,10 @@ export function atualizarUsuario(id: number, dados: NovoUsuario) {
   })
 }
 
+export function excluirUsuario(id: number) {
+  return apiRequest<{ mensagem: string }>(`/usuarios/${id}`, { method: 'DELETE' })
+}
+
 export function criarUsuario(dados: NovoUsuario) {
   return apiRequest<RespostaCriarUsuario>('/usuarios', {
     method: 'POST',
