@@ -33,3 +33,7 @@ export function atualizarEnderecoApi(clienteId: number, id: number, dados: NovoE
     body: JSON.stringify(dados),
   })
 }
+
+export function excluirEnderecoApi(clienteId: number, id: number) {
+  return apiRequest<{ message: string }>(`/clientes/${clienteId}/enderecos/${id}`, { method: 'DELETE' })
+}
