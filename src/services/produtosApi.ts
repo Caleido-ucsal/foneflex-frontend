@@ -29,3 +29,8 @@ export async function listarProdutosApi(): Promise<Produto[]> {
 export async function obterProdutoApi(id: number): Promise<Produto> {
   return mapearProduto(await apiRequest<ProdutoApi>(`/produtos/${id}`))
 }
+
+export async function buscarProdutosApi(pesquisa: string): Promise<Produto[]> {
+  const query = new URLSearchParams({ pesquisa })
+  return (await apiRequest<ProdutoApi[]>(`/produtos/buscar?${query}`)).map(mapearProduto)
+}
