@@ -21,6 +21,13 @@ export function listarUsuarios() {
   return apiRequest<Usuario[]>('/usuarios')
 }
 
+export function atualizarUsuario(id: number, dados: NovoUsuario) {
+  return apiRequest<{ mensagem: string }>(`/usuarios/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
+
 export function criarUsuario(dados: NovoUsuario) {
   return apiRequest<RespostaCriarUsuario>('/usuarios', {
     method: 'POST',
