@@ -35,3 +35,8 @@ export function listarVendasApi() {
 export function obterVendaApi(id: number) {
   return apiRequest<VendaApi>(`/vendas/${id}`)
 }
+
+export function buscarVendasApi(pesquisa: string) {
+  const query = new URLSearchParams({ pesquisa })
+  return apiRequest<VendaApi[]>(`/vendas/buscar?${query}`)
+}
