@@ -51,3 +51,10 @@ export function atualizarVendaApi(id: number, dados: VendaInput) {
 export function excluirVendaApi(id: number) {
   return apiRequest<{ message: string }>(`/vendas/${id}`, { method: 'DELETE' })
 }
+
+export function adicionarProdutoVendaApi(vendaId: number, dados: ProdutoVendaInput) {
+  return apiRequest<{ message: string }>(`/vendas/${vendaId}/produtos`, {
+    method: 'POST',
+    body: JSON.stringify(dados),
+  })
+}
