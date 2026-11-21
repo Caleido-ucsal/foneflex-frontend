@@ -47,3 +47,7 @@ export function atualizarVendaApi(id: number, dados: VendaInput) {
     body: JSON.stringify(dados),
   })
 }
+
+export function excluirVendaApi(id: number) {
+  return apiRequest<{ message: string }>(`/vendas/${id}`, { method: 'DELETE' })
+}
