@@ -62,3 +62,10 @@ export function adicionarProdutoVendaApi(vendaId: number, dados: ProdutoVendaInp
 export function listarProdutosVendaApi(vendaId: number) {
   return apiRequest<ProdutoVendaApi[]>(`/vendas/${vendaId}/produtos`)
 }
+
+export function atualizarProdutoVendaApi(vendaId: number, id: number, dados: ProdutoVendaInput) {
+  return apiRequest<{ message: string }>(`/vendas/${vendaId}/produtos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
