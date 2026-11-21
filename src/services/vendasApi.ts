@@ -31,3 +31,7 @@ export function registrarVendaApi(dados: VendaInput) {
 export function listarVendasApi() {
   return apiRequest<VendaApi[]>('/vendas')
 }
+
+export function obterVendaApi(id: number) {
+  return apiRequest<VendaApi>(`/vendas/${id}`)
+}
