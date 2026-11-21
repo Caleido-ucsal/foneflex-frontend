@@ -73,3 +73,20 @@ export function atualizarProdutoVendaApi(vendaId: number, id: number, dados: Pro
 export function removerProdutoVendaApi(vendaId: number, id: number) {
   return apiRequest<{ mensagem: string }>(`/vendas/${vendaId}/produtos/${id}`, { method: 'DELETE' })
 }
+
+export async function concluirVendaApi(clienteId: number, itens: Omit<ProdutoVendaInput, 'vendaId'>[]) {
+  const anteriores = await listarVendasApi()
+  await registrarVendaApi({ clienteId })
+  const atuais = await listarVendasApi()
+  const idsAnteriores = new Set(anteriores.map((venda) => venda.id))
+  const novas = atuais.filter((venda) => !idsAnteriores.has(venda.id))
+  if (novas.length !== 1) {
+    throw new Error('A venda foi registrada, mas não foi possível identificar seu ID para lançar os produtos. Consulte as vendas antes de tentar novamente.')
+  }
+
+  const vendaId = novas[0].id
+  for (const item of itens) {
+    await adicionarProdutoVendaApi(vendaId, { ...item, vendaId })
+  }
+  return vendaId
+}
