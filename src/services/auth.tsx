@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
+import { clearApiCredentials, setApiCredentials } from './api'
 
 export type User = { name: string; role: string; initials: string }
 
@@ -19,12 +20,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, senha: string) => {
     if (!email.trim() || !senha.trim()) return false
+    setApiCredentials(email.trim(), senha)
     const u = { name: 'FONEFLEX', role: 'OPERADOR GENERICO', initials: 'FF' }
     localStorage.setItem(KEY, JSON.stringify(u))
     setUser(u)
     return true
   }
   const logout = () => {
+    clearApiCredentials()
     localStorage.removeItem(KEY)
     setUser(null)
   }

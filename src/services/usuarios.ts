@@ -9,6 +9,18 @@ export type NovoUsuario = {
 
 type RespostaCriarUsuario = { message: string }
 
+export type Usuario = {
+  id: number
+  nome: string
+  email: string
+  ativo: boolean
+  dataInclusao: string
+}
+
+export function listarUsuarios() {
+  return apiRequest<Usuario[]>('/usuarios')
+}
+
 export function criarUsuario(dados: NovoUsuario) {
   return apiRequest<RespostaCriarUsuario>('/usuarios', {
     method: 'POST',
