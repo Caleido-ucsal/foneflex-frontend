@@ -69,3 +69,7 @@ export function atualizarProdutoVendaApi(vendaId: number, id: number, dados: Pro
     body: JSON.stringify(dados),
   })
 }
+
+export function removerProdutoVendaApi(vendaId: number, id: number) {
+  return apiRequest<{ mensagem: string }>(`/vendas/${vendaId}/produtos/${id}`, { method: 'DELETE' })
+}
