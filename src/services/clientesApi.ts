@@ -33,9 +33,10 @@ export function criarClienteApi(dados: NovoClienteApi) {
   return apiRequest<{ message: string }>('/clientes', {
     method: 'POST',
     body: JSON.stringify({
-      ...dados,
-      ...(dados.cpf ? { cpf: dados.cpf.replace(/\D/g, '') } : {}),
-      ...(dados.email ? { email: dados.email } : {}),
+      nome: dados.nome,
+      telefone: dados.telefone.replace(/\D/g, ''),
+      ...(dados.cpf?.trim() ? { cpf: dados.cpf.replace(/\D/g, '') } : {}),
+      ...(dados.email?.trim() ? { email: dados.email.trim() } : {}),
     }),
   })
 }
