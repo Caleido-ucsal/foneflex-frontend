@@ -34,3 +34,10 @@ export async function buscarProdutosApi(pesquisa: string): Promise<Produto[]> {
   const query = new URLSearchParams({ pesquisa })
   return (await apiRequest<ProdutoApi[]>(`/produtos/buscar?${query}`)).map(mapearProduto)
 }
+
+export function criarProdutoApi(dados: ProdutoInput) {
+  return apiRequest<{ message: string }>('/produtos', {
+    method: 'POST',
+    body: JSON.stringify(dados),
+  })
+}
