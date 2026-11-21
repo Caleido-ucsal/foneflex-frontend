@@ -69,8 +69,13 @@ export default function OrdensServico() {
         clienteId: Number(cliente.id),
         statusOs: 'EM_ANALISE',
       })
-      setOrdens(await listarOrdensServicoApi())
       setModal(false)
+      setErroApi('')
+      try {
+        setOrdens(await listarOrdensServicoApi())
+      } catch (e) {
+        setErroApi(e instanceof Error ? `OS cadastrada, mas não foi possível atualizar a lista: ${e.message}` : 'OS cadastrada, mas não foi possível atualizar a lista.')
+      }
     } catch (e) {
       setErroApi(e instanceof Error ? e.message : 'Não foi possível criar a ordem de serviço.')
     }
@@ -83,7 +88,7 @@ export default function OrdensServico() {
       <PageHeader
         title="Ordens de Serviço"
         subtitle={`${abertas} abertas · ${ordens.length} total`}
-        action={<Button onClick={() => setModal(true)}>＋ Nova OS</Button>}
+        action={<Button onClick={() => { setErroApi(''); setModal(true) }}>＋ Nova OS</Button>}
       />
 
       <Card className={styles.filtros}>
@@ -118,7 +123,7 @@ export default function OrdensServico() {
         </table>
       </Card>
 
-      {modal && <NovaOSModal onClose={() => setModal(false)} onSave={(dados) => void salvarOrdem(dados)} clientes={clientes} />}
+      {modal && <NovaOSModal onClose={() => setModal(false)} onSave={salvarOrdem} clientes={clientes} apiError={erroApi} />}
     </>
   )
 }

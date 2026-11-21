@@ -17,9 +17,9 @@ export type NovaOSForm = {
   valorEstimado: number
 }
 
-type Props = { onClose: () => void; onSave: (dados: NovaOSForm) => void; clientes: Cliente[] }
+type Props = { onClose: () => void; onSave: (dados: NovaOSForm) => Promise<void>; clientes: Cliente[]; apiError?: string }
 
-export function NovaOSModal({ onClose, onSave, clientes }: Props) {
+export function NovaOSModal({ onClose, onSave, clientes, apiError }: Props) {
   const [passo, setPasso] = useState(0)
   const [cpf, setCpf] = useState('')
   const [nome, setNome] = useState('')
@@ -29,6 +29,7 @@ export function NovaOSModal({ onClose, onSave, clientes }: Props) {
   const [imei, setImei] = useState('')
   const [defeito, setDefeito] = useState('')
   const [valor, setValor] = useState('')
+  const [salvando, setSalvando] = useState(false)
 
   const onCpf = (v: string) => {
     const masked = maskCpf(v)
@@ -49,22 +50,28 @@ export function NovaOSModal({ onClose, onSave, clientes }: Props) {
     true,
   ][passo]
 
-  const confirmar = () => {
-    onSave({
-      nome: nome.trim(),
-      cpf: cpf.replace(/\D/g, ''),
-      telefone: telefone.replace(/\D/g, ''),
-      aparelhoMarca: marca.trim(),
-      aparelhoModelo: aparelho.trim(),
-      numeroSerieImei: imei.trim(),
-      descricaoProblema: defeito.trim(),
-      valorEstimado: valorNum,
-    })
+  const confirmar = async () => {
+    setSalvando(true)
+    try {
+      await onSave({
+        nome: nome.trim(),
+        cpf: cpf.replace(/\D/g, ''),
+        telefone: telefone.replace(/\D/g, ''),
+        aparelhoMarca: marca.trim(),
+        aparelhoModelo: aparelho.trim(),
+        numeroSerieImei: imei.trim(),
+        descricaoProblema: defeito.trim(),
+        valorEstimado: valorNum,
+      })
+    } finally {
+      setSalvando(false)
+    }
   }
 
   return (
     <Modal title="Abrir Nova Ordem de Serviço" onClose={onClose} width={795}>
       <Stepper steps={PASSOS} current={passo} />
+      {apiError && <p role="alert" style={{ color: '#b91c1c', fontSize: 13, margin: '12px 0' }}>{apiError}</p>}
 
       {passo === 0 && (
         <Secao titulo="Dados do cliente">
@@ -98,7 +105,7 @@ export function NovaOSModal({ onClose, onSave, clientes }: Props) {
         {passo < 3 ? (
           <Button disabled={!podeAvancar} onClick={() => setPasso(passo + 1)}>Próximo →</Button>
         ) : (
-          <Button variant="accent" onClick={confirmar}>Abrir OS</Button>
+          <Button variant="accent" onClick={confirmar} disabled={salvando}>{salvando ? 'Cadastrando...' : 'Abrir OS'}</Button>
         )}
       </div>
     </Modal>
