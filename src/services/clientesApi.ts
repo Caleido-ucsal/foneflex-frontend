@@ -46,3 +46,7 @@ export function atualizarClienteApi(id: number, dados: NovoClienteApi) {
     body: JSON.stringify(dados),
   })
 }
+
+export function excluirClienteApi(id: number) {
+  return apiRequest<{ mensagem: string }>(`/clientes/${id}`, { method: 'DELETE' })
+}
