@@ -38,3 +38,7 @@ export function criarOrdemServicoApi(dados: OrdemServicoInput) {
 export function listarOrdensServicoApi() {
   return apiRequest<OrdemServicoApi[]>('/ordens-servico')
 }
+
+export function obterOrdemServicoApi(id: number) {
+  return apiRequest<OrdemServicoApi>(`/ordens-servico/${id}`)
+}
