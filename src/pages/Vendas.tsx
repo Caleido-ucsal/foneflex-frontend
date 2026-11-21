@@ -4,7 +4,7 @@ import { Button, Card, FilterTabs } from '../components/ui'
 import { listarClientesApi } from '../services/clientesApi'
 import { brl, dataBR } from '../services/mock'
 import { FORMAS } from '../services/vendas'
-import { listarProdutosApi } from '../services/produtosApi'
+import { buscarProdutosApi, listarProdutosApi } from '../services/produtosApi'
 import { concluirVendaApi } from '../services/vendasApi'
 import type { Cliente, FormaPagamento, ItemVenda, Produto, Venda } from '../types'
 import styles from './Vendas.module.css'
@@ -27,13 +27,26 @@ export default function Vendas() {
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
-    Promise.all([listarProdutosApi(), listarClientesApi()])
-      .then(([listaProdutos, listaClientes]) => {
-        setProdutos(listaProdutos)
-        setClientes(listaClientes)
-      })
-      .catch((e: unknown) => setErroApi(e instanceof Error ? e.message : 'Não foi possível carregar os dados da venda.'))
+    listarClientesApi()
+      .then(setClientes)
+      .catch((e: unknown) => setErroApi(e instanceof Error ? e.message : 'Não foi possível carregar os clientes.'))
   }, [])
+
+  useEffect(() => {
+    let ativo = true
+    const timer = window.setTimeout(() => {
+      const consulta = busca.trim() ? buscarProdutosApi(busca.trim()) : listarProdutosApi()
+      consulta.then((lista) => {
+        if (ativo) setProdutos(lista)
+      }).catch((e: unknown) => {
+        if (ativo) setErroApi(e instanceof Error ? e.message : 'Não foi possível buscar produtos.')
+      })
+    }, busca.trim() ? 250 : 0)
+    return () => {
+      ativo = false
+      window.clearTimeout(timer)
+    }
+  }, [busca])
 
   const visiveis = useMemo(() => {
     const q = busca.trim().toLowerCase()
