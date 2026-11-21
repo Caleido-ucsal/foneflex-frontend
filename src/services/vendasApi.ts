@@ -58,3 +58,7 @@ export function adicionarProdutoVendaApi(vendaId: number, dados: ProdutoVendaInp
     body: JSON.stringify(dados),
   })
 }
+
+export function listarProdutosVendaApi(vendaId: number) {
+  return apiRequest<ProdutoVendaApi[]>(`/vendas/${vendaId}/produtos`)
+}
