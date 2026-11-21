@@ -7,16 +7,16 @@ export type ClienteApi = {
   cpf?: string | null
   telefone: string
   email?: string | null
-  dataCadastro: string
+  dataCadastro?: string | null
 }
 
 const mapearCliente = (cliente: ClienteApi): Cliente => ({
   id: String(cliente.id),
-  nome: cliente.nome,
+  nome: cliente.nome ?? '',
   cpf: cliente.cpf ?? '',
-  telefone: cliente.telefone,
+  telefone: cliente.telefone ?? '',
   email: cliente.email ?? '',
-  desde: cliente.dataCadastro.slice(0, 10),
+  desde: cliente.dataCadastro?.slice(0, 10) ?? '',
 })
 
 export async function listarClientesApi(): Promise<Cliente[]> {

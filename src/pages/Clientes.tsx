@@ -88,7 +88,7 @@ export default function Clientes() {
                 <td className={styles.cpf}>{c.cpf}</td>
                 <td className="muted">{c.telefone}</td>
                 <td className={styles.subtle}>{c.email}</td>
-                <td className={styles.subtle}>{dataBR(c.desde)}</td>
+                <td className={styles.subtle}>{c.desde ? dataBR(c.desde) : '—'}</td>
                 <td><b>{listarOrdens().filter((o) => o.clienteId === c.id).length}</b></td>
                 <td><b>{listarLocacoes().filter((l) => l.clienteId === c.id).length}</b></td>
                 <td className={styles.right}>
