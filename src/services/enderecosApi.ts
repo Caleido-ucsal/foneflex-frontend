@@ -26,3 +26,10 @@ export function listarEnderecosApi(clienteId: number) {
 export function obterEnderecoApi(clienteId: number, id: number) {
   return apiRequest<EnderecoApi>(`/clientes/${clienteId}/enderecos/${id}`)
 }
+
+export function atualizarEnderecoApi(clienteId: number, id: number, dados: NovoEnderecoApi) {
+  return apiRequest<{ message: string }>(`/clientes/${clienteId}/enderecos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(dados),
+  })
+}
