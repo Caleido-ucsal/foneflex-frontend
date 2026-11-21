@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? 'https://foneflex-backend.onrender.com').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : 'https://foneflex-backend.onrender.com')).replace(/\/$/, '')
 let credentials: { username: string; password: string } | null = null
 
 export function setApiCredentials(username: string, password: string) {
@@ -23,10 +23,12 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   if (authorization) headers.set('Authorization', authorization)
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
+  } catch {
+    throw new Error('Falha de conexão com a API. Verifique a rede e a configuração de CORS do backend.')
+  }
 
   const body = await response.json().catch(() => null) as { message?: string; mensagem?: string } | null
   if (!response.ok) {

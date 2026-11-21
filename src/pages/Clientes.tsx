@@ -27,9 +27,9 @@ export default function Clientes() {
   const salvarCliente = async (dados: NovoCliente) => {
     try {
       await criarClienteApi(dados)
-      setClientes(await listarClientesApi())
       setNovoAberto(false)
       setErroApi('')
+      setClientes(await listarClientesApi())
     } catch (e) {
       setErroApi(e instanceof Error ? e.message : 'Não foi possível cadastrar cliente.')
     }
@@ -107,6 +107,7 @@ export default function Clientes() {
         <NovoClienteModal
           onClose={() => setNovoAberto(false)}
           onSave={(dados) => void salvarCliente(dados)}
+          apiError={erroApi}
         />
       )}
       {historico && (

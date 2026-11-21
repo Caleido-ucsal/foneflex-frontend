@@ -4,6 +4,16 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://foneflex-backend.onrender.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
   css: {
     preprocessorOptions: {
       scss: {
