@@ -25,3 +25,7 @@ const mapearProduto = (p: ProdutoApi): Produto => ({
 export async function listarProdutosApi(): Promise<Produto[]> {
   return (await apiRequest<ProdutoApi[]>('/produtos')).map(mapearProduto)
 }
+
+export async function obterProdutoApi(id: number): Promise<Produto> {
+  return mapearProduto(await apiRequest<ProdutoApi>(`/produtos/${id}`))
+}
