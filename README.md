@@ -1,6 +1,6 @@
 # FoneFlex – Front end
 
-Front-end do sistema de gestão da **FoneFlex** (projeto de faculdade): loja de telefonia móvel com venda de aparelhos, conserto e (futuramente) aluguel de celulares.
+Front-end do sistema de gestão da **FoneFlex** (projeto de faculdade): loja de telefonia móvel com venda de aparelhos e conserto. O backend atual ainda não disponibiliza endpoints de locação.
 
 Stack: React + Vite + TypeScript + React Router + React-Bootstrap (tema Bootstrap customizado via Sass).
 Design: https://www.figma.com/design/ceb6rh6IknNUddfzan2jmx/FoneFlex--Copy- (referências em `docs/figma/`)
@@ -20,8 +20,8 @@ Operação 100% em papel, equipe de 6 pessoas. Dores: perda de dados de clientes
 - [x] 2. Design system e layout (tokens, componentes base, sidebar/topbar, login, visão geral)
 - [x] 3. Clientes (listagem, busca, cadastro com máscaras, histórico)
 - [x] 4. Ordens de serviço (filtros, busca, troca de status, Nova OS em 4 passos)
-- [x] 5. Vendas e locações (carrinho, estoque, aluguel em 3 passos, devolução)
-- [x] 6. Visão Geral com dados reais, busca global, layout responsivo, login (mock)
+- [x] 5. Vendas e integração com produtos, estoque e pagamentos
+- [x] 6. Visão Geral com dados da API, busca global, layout responsivo e login autenticado
 
 ## Rodando
 ```
@@ -29,33 +29,41 @@ npm install
 npm run dev
 ```
 
+Em desenvolvimento, o Vite encaminha `/api` para `http://localhost:8080` (porta padrão do Spring Boot). Deixe `VITE_API_URL` sem definir para usar esse proxy. Como o backend atual não configura CORS, uma publicação em outra origem precisa de um proxy reverso same-origin; apontar diretamente o navegador para o backend cross-origin não funciona.
+
+O login usa HTTP Basic com e-mail e senha cadastrados no backend (`POST /usuarios` é público; as demais rotas exigem autenticação). As credenciais permanecem apenas em memória e precisam ser informadas novamente após recarregar a página.
+
+Validação local:
+```
+npm run build
+npm run lint
+```
+
 ## Telas
 | Rota | Tela |
 |---|---|
-| `/login` | Login (simulado: qualquer e-mail e senha preenchidos) |
-| `/` | Visão Geral (indicadores calculados dos dados) |
-| `/ordens-de-servico` | Ordens de Serviço, filtros, troca de status, Nova OS (4 passos) |
-| `/vendas` | Vendas de Balcão (carrinho, estoque, recibo) |
-| `/locacoes` | Locação de Aparelhos (novo aluguel em 3 passos, caução, devolução) |
-| `/clientes` | Clientes (cadastro, histórico) |
-| `/aparelhos` | Catálogo de aparelhos para aluguel (filtros, favoritos, alugar) |
-| `/caixa` | Caixa (entradas de vendas e diárias, caução em custódia) |
+| `/login` | Login autenticado pela API e cadastro de usuário |
+| `/` | Indicadores e ordens abertas carregados da API |
+| `/ordens-de-servico` | Ordens, filtros, atualização de status e cadastro |
+| `/vendas` | Produtos/estoque, carrinho, venda e pagamento |
+| `/locacoes` | Informativo: o backend atual não possui rotas de locação |
+| `/clientes` | Clientes e histórico de OS/compras carregados da API |
 
 ## Arquitetura
-- `src/services/`: camada de dados. Hoje usa `localStorage` com dados iniciais (`mock.ts`); para integrar o back-end, troque as funções de cada serviço mantendo as assinaturas.
+- `src/services/`: camada de dados para usuários, clientes, produtos, ordens, vendas, produtos da venda e pagamentos.
+- `src/services/api.ts`: HTTP Basic, serialização JSON e apresentação de erros da API.
 - `src/styles/theme.scss`: tema Bootstrap. Sobrescreve as variáveis do framework com a paleta da marca (`_brand.scss`) e a fonte Inter; `_shell.scss` e `_components.scss` trazem os estilos próprios.
 - `src/components/ui`: peças sobre o React-Bootstrap (badges de status, paginação, estados de carregamento/vazio, toasts, stepper). `src/components/layout`: sidebar (offcanvas no mobile), topbar, busca global, notificações.
 - `src/pages/`: uma pasta por módulo com seus modais.
-- Para recomeçar com os dados de exemplo, limpe o localStorage do navegador (chaves `foneflex:*`).
 
 ## Regras implementadas (do documento 4.4)
-- Cadastro unificado de clientes, reaproveitado em OS, vendas e aluguéis.
+- Cadastro unificado de clientes, reaproveitado em OS e vendas.
 - Rastreio de OS por status e histórico por cliente.
-- Aluguel presencial com caução recebida no ato e termo de responsabilidade obrigatórios; caução só é liberada na devolução.
-- Caixa do dia = vendas + diárias de locações iniciadas hoje (caução, por ser reembolsável, fica fora).
+- Vendas registram produtos e pagamentos pelos endpoints disponíveis, aceitando mais de uma forma de pagamento desde que as parcelas somem o total.
+- Locações e caixa de diárias/cauções permanecem indisponíveis até o backend expor esses recursos.
 
 ## Pendências / próximos passos
 - Substituir a logo aproximada pelo arquivo oficial em alta resolução.
-- Integrar com back-end e autenticação real (hoje simulados).
+- Implementar endpoints de locação e os recursos de caixa associados no backend antes de habilitá-los no frontend.
 - Perfis de acesso (o cliente ainda não definiu papéis entre os 6 funcionários).
 - Fase 3: plataforma online para clientes finais.

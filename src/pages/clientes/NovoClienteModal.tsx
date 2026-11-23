@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Input, Modal } from '../../components/ui'
-import type { NovoCliente } from '../../services/clientes'
+import type { NovoClienteApi } from '../../services/clientesApi'
 import { cpfValido, maskCpf, maskTelefone, telefoneValido } from '../../services/masks'
 
-type Props = { onClose: () => void; onSave: (dados: NovoCliente) => void; apiError?: string }
+type Props = { onClose: () => void; onSave: (dados: NovoClienteApi) => void; apiError?: string }
 
 export function NovoClienteModal({ onClose, onSave, apiError }: Props) {
   const [nome, setNome] = useState('')

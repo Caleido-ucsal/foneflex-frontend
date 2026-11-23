@@ -42,5 +42,4 @@ export type Produto = { id: string; nome: string; categoria: 'Smartphones' | 'Ac
 
 export type ItemVenda = { produtoId: string; nome: string; preco: number; qtd: number }
 
-export type Venda = { id: string; data: string; clienteId?: string; itens: ItemVenda[]; total: number; pagamento: FormaPagamento }
-
+export type Venda = { id: string; data: string; clienteId?: string; itens: ItemVenda[]; total: number; pagamento: string }

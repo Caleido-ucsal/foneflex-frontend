@@ -25,8 +25,15 @@ export default function Login() {
     setSucesso('')
 
     if (!modoCadastro) {
-      if (login(email, senha)) navigate('/')
-      else setErro('Informe e-mail/login e senha.')
+      setEnviando(true)
+      try {
+        await login(email, senha)
+        navigate('/')
+      } catch (e) {
+        setErro(e instanceof Error ? e.message : 'Não foi possível entrar. Verifique suas credenciais.')
+      } finally {
+        setEnviando(false)
+      }
       return
     }
 
@@ -57,9 +64,9 @@ export default function Login() {
           <Input id="email" type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <div>
             <Input id="senha" type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={6} maxLength={20} required />
-            {!modoCadastro && <a href="#" className={styles.forgot}>Esqueceu sua senha?</a>}
+            {!modoCadastro && <span className={styles.forgot}>Esqueceu sua senha? Solicite a redefinição ao administrador.</span>}
           </div>
-          {erro && <p className={styles.erro}>{erro}</p>}
+          {erro && <p role="alert" className={styles.erro}>{erro}</p>}
           {sucesso && <p className={styles.sucesso}>{sucesso}</p>}
           <Button variant="accent" type="submit" block disabled={enviando}>{enviando ? 'Enviando...' : modoCadastro ? 'Criar usuário' : 'Entrar'}</Button>
           <button type="button" className={styles.alternar} onClick={() => { setModoCadastro(!modoCadastro); setErro(''); setSucesso('') }}>

@@ -24,8 +24,7 @@ export const ordensSeed: OrdemServico[] = [
   { id: 'OS-0033', data: '2026-09-02', clienteId: 'c3', aparelho: 'Xiaomi POCO X5', defeito: 'Touch sem resposta', tecnico: 'Priscila Ramos', status: 'Cancelado', valor: 0 },
 ]
 
-export const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-export const dataBR = (iso: string) => iso.split('-').reverse().join('/')
+export { brl, dataBR } from './formatters'
 
 export const hojeISO = () => new Date().toISOString().slice(0, 10)
 

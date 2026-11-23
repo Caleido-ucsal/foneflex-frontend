@@ -9,9 +9,10 @@ export type OrdemServicoApi = {
   numeroSerieImei: string
   descricaoProblema: string
   valorEstimado: string | number
+  valorPago: number | null
   nomeCliente: string
   nomeFuncionarioResponsavel?: string | null
-  statusOS: StatusOsApi
+  statusOS: StatusOsApi | null
   dataAbertura: string
   dataConclusao?: string | null
 }

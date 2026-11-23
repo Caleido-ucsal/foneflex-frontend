@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button, Input, Modal, Stepper } from '../../components/ui'
 import type { Cliente } from '../../types'
 import { cpfValido, maskCpf, maskTelefone, telefoneValido } from '../../services/masks'
-import { brl } from '../../services/mock'
+import { brl } from '../../services/formatters'
 
 const PASSOS = ['Cliente', 'Dispositivo', 'Diagnóstico', 'Confirmação']
 
@@ -133,4 +133,3 @@ function Resumo({ itens }: { itens: [string, string][] }) {
     </dl>
   )
 }
-

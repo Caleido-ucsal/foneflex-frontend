@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : 'https://foneflex-backend.onrender.com')).replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : 'http://localhost:8080')).replace(/\/$/, '')
 let credentials: { username: string; password: string } | null = null
 
 export function setApiCredentials(username: string, password: string) {
@@ -27,13 +27,30 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
   } catch {
-    throw new Error('Falha de conexão com a API. Verifique a rede e a configuração de CORS do backend.')
+    throw new Error('Falha de conexão com a API. Verifique se o backend está ativo e a configuração do proxy.')
   }
 
-  const body = await response.json().catch(() => null) as { message?: string; mensagem?: string } | null
+  const responseText = await response.text()
+  let body: unknown = null
+  if (responseText) {
+    try {
+      body = JSON.parse(responseText)
+    } catch {
+      body = responseText
+    }
+  }
+
   if (!response.ok) {
-    throw new Error(body?.message ?? body?.mensagem ?? `Erro na requisição (${response.status})`)
+    const payload = typeof body === 'object' && body !== null ? body as Record<string, unknown> : null
+    const validationErrors = payload?.errors
+    const details = Array.isArray(validationErrors)
+      ? validationErrors.map((error) => typeof error === 'string' ? error : JSON.stringify(error)).join('; ')
+      : undefined
+    const message = payload?.message ?? payload?.mensagem ?? payload?.detail ?? payload?.title ?? details ?? body
+    throw new Error(typeof message === 'string' ? message : `Erro na requisição (${response.status})`)
   }
 
+  if (body === null) return undefined as T
+  if (typeof body === 'string') throw new Error('A API retornou uma resposta em formato inválido.')
   return body as T
 }

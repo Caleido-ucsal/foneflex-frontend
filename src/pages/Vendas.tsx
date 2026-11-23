@@ -2,17 +2,30 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../components/layout/PageHeader'
 import { Button, Card, FilterTabs } from '../components/ui'
 import { listarClientesApi } from '../services/clientesApi'
-import { brl, dataBR } from '../services/mock'
-import { FORMAS } from '../services/vendas'
+import { brl, dataBR, hojeISO } from '../services/formatters'
 import { buscarProdutosApi, listarProdutosApi } from '../services/produtosApi'
-import { concluirVendaApi } from '../services/vendasApi'
+import { concluirVendaApi, VendaParcialError } from '../services/vendasApi'
+import { BANDEIRAS_CARTAO, FORMAS_PAGAMENTO, type BandeiraCartaoApi, type MetodoPagamentoApi } from '../services/pagamentosApi'
 import type { Cliente, FormaPagamento, ItemVenda, Produto, Venda } from '../types'
 import styles from './Vendas.module.css'
 
 const FILTROS = ['Todos', 'Smartphones', 'Acessórios'] as const
 type Filtro = (typeof FILTROS)[number]
+type PagamentoLinha = { id: number; metodo: FormaPagamento; bandeiraCartao?: BandeiraCartaoApi; valor: string }
 
 const icone = (p: Produto) => (p.categoria === 'Smartphones' ? '📱' : '🔌')
+
+const parseValor = (valor: string) => {
+  const entrada = valor.trim().replace(/\s/g, '')
+  const normalizado = entrada.includes(',')
+    ? entrada.replace(/\./g, '').replace(',', '.')
+    : entrada
+  const numero = Number(normalizado)
+  return Number.isFinite(numero) ? Math.round(numero * 100) : 0
+}
+
+const valorInput = (centavos: number) => (centavos / 100).toFixed(2).replace('.', ',')
+const metodoCartao = (metodo: FormaPagamento) => metodo === 'Cartão de Crédito' || metodo === 'Cartão de Débito'
 
 export default function Vendas() {
   const [produtos, setProdutos] = useState<Produto[]>([])
@@ -21,15 +34,18 @@ export default function Vendas() {
   const [busca, setBusca] = useState('')
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([])
   const [clienteTxt, setClienteTxt] = useState('')
-  const [pagamento, setPagamento] = useState<FormaPagamento>('PIX')
+  const [pagamentos, setPagamentos] = useState<PagamentoLinha[]>([{ id: 1, metodo: 'PIX', valor: '' }])
   const [recibo, setRecibo] = useState<Venda | null>(null)
-  const [erroApi, setErroApi] = useState('')
+  const [erroClientes, setErroClientes] = useState('')
+  const [erroProdutos, setErroProdutos] = useState('')
+  const [erroOperacao, setErroOperacao] = useState('')
+  const [carregandoProdutos, setCarregandoProdutos] = useState(true)
   const [enviando, setEnviando] = useState(false)
 
   useEffect(() => {
     listarClientesApi()
       .then(setClientes)
-      .catch((e: unknown) => setErroApi(e instanceof Error ? e.message : 'Não foi possível carregar os clientes.'))
+      .catch((e: unknown) => setErroClientes(e instanceof Error ? e.message : 'Não foi possível carregar os clientes.'))
   }, [])
 
   useEffect(() => {
@@ -37,9 +53,14 @@ export default function Vendas() {
     const timer = window.setTimeout(() => {
       const consulta = busca.trim() ? buscarProdutosApi(busca.trim()) : listarProdutosApi()
       consulta.then((lista) => {
-        if (ativo) setProdutos(lista)
+        if (ativo) {
+          setProdutos(lista)
+          setErroProdutos('')
+        }
       }).catch((e: unknown) => {
-        if (ativo) setErroApi(e instanceof Error ? e.message : 'Não foi possível buscar produtos.')
+        if (ativo) setErroProdutos(e instanceof Error ? e.message : 'Não foi possível buscar produtos.')
+      }).finally(() => {
+        if (ativo) setCarregandoProdutos(false)
       })
     }, busca.trim() ? 250 : 0)
     return () => {
@@ -63,7 +84,33 @@ export default function Vendas() {
   }, [clientes, clienteTxt])
 
   const total = carrinho.reduce((t, i) => t + i.preco * i.qtd, 0)
+  const totalCentavos = Math.round(total * 100)
+  const pagamentosNormalizados = pagamentos.map((item) => ({
+    metodo: item.metodo,
+    valorCentavos: parseValor(item.valor || (pagamentos.length === 1 ? valorInput(totalCentavos) : '')),
+  }))
+  const somaPagamentos = pagamentosNormalizados.reduce((soma, item) => soma + item.valorCentavos, 0)
+  const restantePagamento = totalCentavos - somaPagamentos
+  const pagamentosValidos = totalCentavos === 0
+    ? pagamentos.every((item) => !item.valor || parseValor(item.valor) === 0)
+    : pagamentos.length > 0 &&
+      pagamentosNormalizados.every((item) => item.valorCentavos > 0) &&
+      pagamentos.every((item) => !metodoCartao(item.metodo) || item.bandeiraCartao !== undefined) &&
+      somaPagamentos === totalCentavos
   const qtdNoCarrinho = (id: string) => carrinho.find((i) => i.produtoId === id)?.qtd ?? 0
+
+  const adicionarPagamento = () => {
+    setPagamentos((linhas) => {
+      const proximoId = Math.max(0, ...linhas.map((linha) => linha.id)) + 1
+      return [
+        ...linhas.map((linha) => linha.valor.trim() ? linha : {
+          ...linha,
+          valor: linhas.length === 1 ? valorInput(totalCentavos) : linha.valor,
+        }),
+        { id: proximoId, metodo: 'PIX', valor: '' },
+      ]
+    })
+  }
 
   const adicionar = (p: Produto) => {
     if (qtdNoCarrinho(p.id) >= p.estoque) return
@@ -83,31 +130,68 @@ export default function Vendas() {
   }
 
   const finalizar = async () => {
-    if (!cliente) {
-      setErroApi('Selecione um cliente cadastrado para registrar a venda.')
+    if (clienteTxt.trim() && !cliente) {
+      setErroOperacao('Cliente não encontrado. Selecione um cliente cadastrado ou limpe o campo para vender sem identificação.')
       return
     }
     setEnviando(true)
-    setErroApi('')
+    setErroOperacao('')
     try {
-      const vendaId = await concluirVendaApi(Number(cliente.id), carrinho.map((item) => ({
-        produtoId: Number(item.produtoId),
-        quantidade: item.qtd,
-      })))
+      const formasApi: Record<FormaPagamento, MetodoPagamentoApi> = {
+        PIX: 'PIX',
+        'Cartão de Crédito': 'CARTAO_CREDITO',
+        'Cartão de Débito': 'CARTAO_DEBITO',
+        Dinheiro: 'DINHEIRO',
+      }
+      if (!pagamentosValidos) {
+        setErroOperacao('Informe uma bandeira para cada parcela de cartão e confira se os valores somam o total da venda.')
+        setEnviando(false)
+        return
+      }
+
+      const vendaId = await concluirVendaApi(
+        cliente ? Number(cliente.id) : undefined,
+        carrinho.map((item) => ({ produtoId: Number(item.produtoId), quantidade: item.qtd })),
+        pagamentosNormalizados
+          .filter((item) => item.valorCentavos > 0)
+          .map((item, index) => ({
+            metodoPagamento: formasApi[item.metodo],
+            ...(pagamentos[index].bandeiraCartao ? { bandeiraCartao: pagamentos[index].bandeiraCartao } : {}),
+            valor: item.valorCentavos / 100,
+          })),
+      )
+      const resumoPagamento = pagamentosNormalizados
+        .filter((item) => item.valorCentavos > 0)
+        .map((item) => `${item.metodo}: ${brl(item.valorCentavos / 100)}`)
+        .join(' + ')
       const venda: Venda = {
         id: String(vendaId),
-        data: new Date().toISOString().slice(0, 10),
-        clienteId: cliente.id,
+        data: hojeISO(),
+        clienteId: cliente?.id,
         itens: carrinho,
         total,
-        pagamento,
+        pagamento: resumoPagamento || 'Não informado',
       }
       setRecibo(venda)
       setCarrinho([])
       setClienteTxt('')
-      setProdutos(await listarProdutosApi())
+      setPagamentos([{ id: 1, metodo: 'PIX', valor: '' }])
+      try {
+        setProdutos(await listarProdutosApi())
+      } catch (e) {
+        setErroProdutos(e instanceof Error ? `Venda registrada, mas não foi possível atualizar o estoque exibido: ${e.message}` : 'Venda registrada, mas não foi possível atualizar o estoque exibido.')
+      }
     } catch (e) {
-      setErroApi(e instanceof Error ? e.message : 'Não foi possível concluir a venda.')
+      setErroOperacao(e instanceof Error ? e.message : 'Não foi possível concluir a venda.')
+      if (e instanceof VendaParcialError) {
+        setCarrinho([])
+        setClienteTxt('')
+        try {
+          setProdutos(await listarProdutosApi())
+        } catch (erroEstoque) {
+          setErroProdutos(erroEstoque instanceof Error ? `Não foi possível atualizar o estoque após a venda parcial: ${erroEstoque.message}` : 'Não foi possível atualizar o estoque após a venda parcial.')
+        }
+      }
     } finally {
       setEnviando(false)
     }
@@ -119,9 +203,19 @@ export default function Vendas() {
         <PageHeader title="Vendas de Balcão" subtitle={`${produtos.length} produtos em estoque`} />
         <Card className={styles.filtros}>
           <FilterTabs options={FILTROS} value={filtro} onChange={setFiltro} />
-          <input placeholder="Buscar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+          <input
+            placeholder="Buscar produto..."
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value)
+              setCarregandoProdutos(true)
+              setErroProdutos('')
+            }}
+          />
         </Card>
-        {erroApi && <p role="alert" className={styles.erro}>{erroApi}</p>}
+        {erroProdutos && <p role="alert" className={styles.erro}>{erroProdutos}</p>}
+        {erroClientes && <p role="alert" className={styles.erro}>{erroClientes}</p>}
+        {erroOperacao && <p role="alert" className={styles.erro}>{erroOperacao}</p>}
 
         <div className={styles.grid}>
           {visiveis.map((p) => {
@@ -138,6 +232,8 @@ export default function Vendas() {
               </button>
             )
           })}
+          {carregandoProdutos && <p className={styles.vazio}>Carregando produtos...</p>}
+          {!carregandoProdutos && !erroProdutos && visiveis.length === 0 && <p className={styles.vazio}>Nenhum produto encontrado.</p>}
         </div>
       </section>
 
@@ -175,15 +271,73 @@ export default function Vendas() {
           </label>
           {cliente && <small className={styles.ok}>Cliente: {cliente.nome}</small>}
 
-          <span className={styles.rotulo}>Forma de Pagamento</span>
-          <div className={styles.formas}>
-            {FORMAS.map((f) => (
-              <button key={f} className={f === pagamento ? styles.sel : ''} onClick={() => setPagamento(f)}>{f}</button>
+          <div className={styles.pagamentoTitulo}>
+            <span className={styles.rotulo}>Formas de Pagamento</span>
+            <Button type="button" variant="secondary" onClick={adicionarPagamento} disabled={total <= 0}>＋ Adicionar</Button>
+          </div>
+          <div className={styles.pagamentos}>
+            {pagamentos.map((item, index) => (
+              <div className={styles.pagamentoLinha} key={item.id}>
+                <label>
+                  <span className={styles.rotulo}>{pagamentos.length > 1 ? `Parcela ${index + 1}` : 'Forma de pagamento'}</span>
+                  <select
+                    value={item.metodo}
+                    onChange={(event) => setPagamentos((linhas) => linhas.map((linha) =>
+                    linha.id === item.id ? { ...linha, metodo: event.target.value as FormaPagamento, bandeiraCartao: undefined } : linha,
+                    ))}
+                  >
+                    {FORMAS_PAGAMENTO.map((forma) => <option key={forma} value={forma}>{forma}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span className={styles.rotulo}>Valor (R$)</span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={item.valor || (pagamentos.length === 1 ? valorInput(totalCentavos) : '')}
+                    onChange={(event) => setPagamentos((linhas) => linhas.map((linha) =>
+                      linha.id === item.id ? { ...linha, valor: event.target.value.replace(/[^\d.,]/g, '') } : linha,
+                    ))}
+                  />
+                </label>
+                {metodoCartao(item.metodo) && (
+                  <label className={styles.bandeira}>
+                    <span className={styles.rotulo}>Bandeira do cartão *</span>
+                    <select
+                      value={item.bandeiraCartao ?? ''}
+                      required
+                      onChange={(event) => setPagamentos((linhas) => linhas.map((linha) =>
+                        linha.id === item.id
+                          ? { ...linha, bandeiraCartao: event.target.value ? event.target.value as BandeiraCartaoApi : undefined }
+                          : linha,
+                      ))}
+                    >
+                      <option value="">Selecione a bandeira</option>
+                      {BANDEIRAS_CARTAO.map((bandeira) => <option key={bandeira.value} value={bandeira.value}>{bandeira.label}</option>)}
+                    </select>
+                  </label>
+                )}
+                {pagamentos.length > 1 && (
+                  <button
+                    type="button"
+                    className={styles.removerPagamento}
+                    aria-label={`Remover parcela ${index + 1}`}
+                    onClick={() => setPagamentos((linhas) => linhas.filter((linha) => linha.id !== item.id))}
+                  >×</button>
+                )}
+              </div>
             ))}
           </div>
 
           <div className={styles.total}><span>Total</span><strong>{brl(total)}</strong></div>
-          <Button block disabled={carrinho.length === 0 || enviando} onClick={finalizar}>{enviando ? 'Registrando...' : 'Finalizar Venda e Emitir Recibo'}</Button>
+          <div className={restantePagamento === 0 ? styles.pagamentoOk : styles.pagamentoPendente} aria-live="polite">
+            {restantePagamento === 0
+              ? `Pagamentos conferem: ${brl(somaPagamentos / 100)}`
+              : restantePagamento > 0
+                ? `Falta distribuir ${brl(restantePagamento / 100)}`
+                : `Valor excedente de ${brl(Math.abs(restantePagamento) / 100)}`}
+          </div>
+          <Button block disabled={carrinho.length === 0 || enviando || !pagamentosValidos} onClick={finalizar}>{enviando ? 'Registrando...' : 'Finalizar Venda e Emitir Recibo'}</Button>
         </footer>
       </Card>
     </div>

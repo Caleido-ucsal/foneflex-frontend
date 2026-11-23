@@ -1,19 +1,37 @@
 import { useState } from 'react'
 import { Modal } from '../../components/ui'
-import { brl, dataBR } from '../../services/mock'
-import { statusLocacao } from '../../services/locacoes'
-import type { Cliente, Locacao, OrdemServico, Venda } from '../../types'
+import { brl, dataBR } from '../../services/formatters'
+import type { OrdemServicoApi } from '../../services/ordensServicoApi'
+import type { CompraHistoricoApi } from '../../services/vendasApi'
+import type { Cliente } from '../../types'
 import styles from './HistoricoModal.module.css'
 
-type Props = { cliente: Cliente; ordens: OrdemServico[]; compras: Venda[]; locacoes: Locacao[]; onClose: () => void }
+type Props = {
+  cliente: Cliente
+  ordens: OrdemServicoApi[]
+  compras: CompraHistoricoApi[]
+  carregandoCompras: boolean
+  erroCompras: string
+  locacoesDisponiveis: boolean
+  onClose: () => void
+}
 type Aba = 'os' | 'compras' | 'alugueis'
 
-export function HistoricoModal({ cliente, ordens, compras, locacoes, onClose }: Props) {
+const rotuloStatusOs: Record<Exclude<OrdemServicoApi['statusOS'], null>, string> = {
+  EM_ANALISE: 'Em Análise',
+  EM_ANDAMENTO: 'Em Andamento',
+  AGUARDANDO_PECA: 'Aguardando Peça',
+  PRONTO: 'Pronto para Retirada',
+  ENTREGUE: 'Entregue',
+  CANCELADO: 'Cancelado',
+}
+
+export function HistoricoModal({ cliente, ordens, compras, carregandoCompras, erroCompras, locacoesDisponiveis, onClose }: Props) {
   const [aba, setAba] = useState<Aba>('os')
-  const abas: { id: Aba; label: string; n: number }[] = [
+  const abas: { id: Aba; label: string; n: number | string }[] = [
     { id: 'os', label: 'Ordens de Serviço', n: ordens.length },
-    { id: 'compras', label: 'Compras', n: compras.length },
-    { id: 'alugueis', label: 'Aluguéis', n: locacoes.length },
+    { id: 'compras', label: 'Compras', n: carregandoCompras ? '…' : compras.length },
+    { id: 'alugueis', label: 'Aluguéis', n: locacoesDisponiveis ? 0 : '—' },
   ]
 
   return (
@@ -25,7 +43,7 @@ export function HistoricoModal({ cliente, ordens, compras, locacoes, onClose }: 
           <span>{cliente.cpf} &nbsp; {cliente.telefone} &nbsp; {cliente.email}</span>
         </div>
         <div className={styles.kpi}><b>{ordens.length}</b><small>OS Total</small></div>
-        <div className={styles.kpi}><b>{locacoes.length}</b><small>Aluguéis</small></div>
+        <div className={styles.kpi}><b>{locacoesDisponiveis ? '0' : '—'}</b><small>Aluguéis</small></div>
       </div>
 
       <div className={styles.tabs} role="tablist">
@@ -39,20 +57,24 @@ export function HistoricoModal({ cliente, ordens, compras, locacoes, onClose }: 
       {aba === 'os' && (
         <Tabela
           cols={['Nº OS', 'Data', 'Aparelho', 'Defeito', 'Status', 'Valor']}
-          rows={ordens.map((o) => [<span key="id" className="mono">{o.id}</span>, dataBR(o.data), o.aparelho, o.defeito, <b key="s">{o.status}</b>, brl(o.valor)])}
+          rows={ordens.map((o) => [<span key="id" className="mono">{o.id}</span>, dataBR(o.dataAbertura), `${o.aparelhoMarca} ${o.aparelhoModelo}`, o.descricaoProblema, <b key="s">{o.statusOS ? rotuloStatusOs[o.statusOS] : 'Sem status'}</b>, brl(Number(o.valorEstimado))])}
         />
       )}
       {aba === 'compras' && (
-        <Tabela
-          cols={['Nº', 'Data', 'Itens', 'Pagamento', 'Valor']}
-          rows={compras.map((c) => [<span key="id" className="mono">{c.id}</span>, dataBR(c.data), c.itens.map((i) => `${i.qtd}x ${i.nome}`).join(', '), c.pagamento, brl(c.total)])}
-        />
+        <>
+          {erroCompras && <p role="alert" className={styles.vazio}>{erroCompras}</p>}
+          {carregandoCompras
+            ? <p className={styles.vazio}>Carregando compras...</p>
+            : <Tabela
+                cols={['Nº', 'Data', 'Itens', 'Pagamento', 'Valor']}
+                rows={compras.map((c) => [<span key="id" className="mono">{c.id}</span>, dataBR(c.data), c.itens.join(', ') || 'Sem itens', c.pagamento, brl(c.total)])}
+              />}
+        </>
       )}
       {aba === 'alugueis' && (
-        <Tabela
-          cols={['Locação', 'Aparelho', 'Início', 'Limite', 'Caução', 'Status']}
-          rows={locacoes.map((l) => [<span key="id" className="mono">{l.id}</span>, l.aparelho, dataBR(l.inicio), dataBR(l.limite), brl(l.caucao), <b key="s">{statusLocacao(l)}</b>])}
-        />
+        <p className={styles.vazio}>
+          {locacoesDisponiveis ? 'Nenhum registro.' : 'O backend atual não disponibiliza endpoints de locação.'}
+        </p>
       )}
     </Modal>
   )

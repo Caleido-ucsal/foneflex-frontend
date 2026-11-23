@@ -1,22 +1,23 @@
 import type { Cliente } from '../types'
 import { apiRequest } from './api'
+import { maskCpf, maskTelefone } from './masks'
 
 export type ClienteApi = {
   id: number
   nome: string
   cpf?: string | null
-  telefone: string
+  telefone: string | null
   email?: string | null
-  dataCadastro: string
+  dataCadastro: string | null
 }
 
 const mapearCliente = (cliente: ClienteApi): Cliente => ({
   id: String(cliente.id),
   nome: cliente.nome,
-  cpf: cliente.cpf ?? '',
-  telefone: cliente.telefone,
+  cpf: cliente.cpf ? maskCpf(cliente.cpf) : '',
+  telefone: cliente.telefone ? maskTelefone(cliente.telefone) : '',
   email: cliente.email ?? '',
-  desde: cliente.dataCadastro.slice(0, 10),
+  desde: cliente.dataCadastro?.slice(0, 10) ?? '',
 })
 
 export async function listarClientesApi(): Promise<Cliente[]> {
@@ -24,7 +25,9 @@ export async function listarClientesApi(): Promise<Cliente[]> {
   return clientes.map(mapearCliente)
 }
 
-export type NovoClienteApi = Pick<ClienteApi, 'nome' | 'telefone'> & {
+export type NovoClienteApi = {
+  nome: string
+  telefone: string
   cpf?: string
   email?: string
 }

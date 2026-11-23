@@ -13,3 +13,4 @@ td { padding: 14px 18px; font-size: 13px; border-top: 1px solid #f1f5f9; }
 .right { text-align: right; }
 .status { color: var(--blue-600); font-weight: 600; }
 .actions { display: flex; gap: 12px; justify-content: flex-end; }
+.erro { color: #b91c1c; font-size: 13px; }
