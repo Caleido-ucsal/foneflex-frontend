@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : 'http://localhost:8080')).replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? '/api' : 'https://foneflex-backend.onrender.com')).replace(/\/$/, '')
 let credentials: { username: string; password: string } | null = null
 
 export function setApiCredentials(username: string, password: string) {
